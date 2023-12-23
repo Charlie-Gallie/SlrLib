@@ -3,6 +3,7 @@
 #define SLR_UTILITIES_TYPES
 
 #include <cstdint>
+#include <type_traits>
 
 #include "SlrLib/Internal/Namespace.hpp"
 
@@ -54,8 +55,34 @@ struct WordSize<8>
 
 /**
 * Get the word size of the platform
+* It is possible for this to be the wrong value, but should be correct when compiling for the majority of platforms
+* Should look for a fully reliable way to get the word size of the platform
 */
 using word = WordSize<sizeof(void*)>::PointerType;
+
+/**
+* Takes _Type and forms ReturnType::Type into _Type as the datatype which should be returned from a function call
+*/
+template<typename _Type>
+class ReturnType
+{
+	static_assert(!std::is_const<_Type>::value, "Return type may not be const");
+	static_assert(!std::is_reference<_Type>::value, "Return type may not be initially declared as a reference");
+
+public:
+	using Type = _Type&;
+};
+
+/**
+* Converts _type into the return type for functions
+* This is to make the return values within function parameters explicit to differentiate it from taking a regular reference
+* Example usage:
+*     Status Multiply(i32 _a, i32 _b, SLR_RETURN(i32) _c) {
+*         _c = _a * _b;
+*         // ...
+*     }
+*/
+#define SLR_RETURN(_type) typename ReturnType<_type>::Type
 
 SLR_NAMEPSACE_END
 
