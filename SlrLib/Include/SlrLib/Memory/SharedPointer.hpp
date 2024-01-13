@@ -13,7 +13,7 @@
 SLR_NAMESPACE_BEGIN
 
 /**
-* 
+*
 */
 template<typename _Type>
 class Shared
@@ -95,7 +95,7 @@ public:
 	* Returns a boolean stating if this instance is holding a reference to an object, where true means it is holding a
 	* reference, and false means it is not
 	*/
-	inline Status IsHoldingReference(bool& _isHoldingReference) const
+	inline Status IsHoldingReference(SLR_RETURN(bool) _isHoldingReference) const
 	{
 		_isHoldingReference = ((value != nullptr) && (referenceCount != nullptr));
 
@@ -108,19 +108,19 @@ public:
 	* If IsHoldingReference(...) returns true immediately prior to calling this function, it will not throw an exception and
 	* the reference count will be >=1
 	*/
-	inline Status GetReferenceCount(size& _references) const
+	inline Status GetReferenceCount(SLR_RETURN(size) _references) const
 	{
 		// Check if we're holding a reference to an object
 		bool isHoldingReference;
 		IsHoldingReference(isHoldingReference);
-		SLR_ASSERT_ERROR(isHoldingReference == true, NOT_HOLDING_REFERENCE, "Not holding a reference to any object");
+		SLR_ASSERT_ERROR(isHoldingReference == true, "Not holding a reference to any object")
+		{
+			return Status::FAIL;
+		}
 
 		_references = *this->referenceCount;
 
 		return Status::SUCCESS;
-
-	SLR_EXCEPTION(NOT_HOLDING_REFERENCE):
-		return Status::FAIL;
 	}
 
 	/**
@@ -214,7 +214,11 @@ private:
 };
 
 /**
-* 
+* Takes a reference to a shared pointer and constructs a dynamically allocated object within it such that the shared pointer
+* is now holding a reference to that object. It also takes variadic template parameters which are forwarded to the
+* constructor of _Type.
+* We take a reference to _shared and not SLR_RETURN(...) because this is acting more as a factory function, not a returning
+* function.
 */
 template<typename _Type, typename ... _Arguments>
 Status CreateShared(Shared<_Type>& _shared, _Arguments&& ... _arguments)
@@ -226,8 +230,11 @@ Status CreateShared(Shared<_Type>& _shared, _Arguments&& ... _arguments)
 	// We allocate the object and reference count together so we don't have to do multiple allocations, and so getting the
 	// value of the reference count can be optimized
 	void* allocation = nullptr;
-	Status status = MemAlloc(sizeof(_Type) + sizeof(ReferenceCountType), allocation);
-	SLR_ASSERT_ERROR(status == Status::SUCCESS, COULD_NOT_ALLOCATE, "Could not allocate memory for shared pointer object");
+	Status status = MemAlloc(allocation, sizeof(_Type) + sizeof(ReferenceCountType));
+	SLR_ASSERT_ERROR(status == Status::SUCCESS, "Could not allocate memory for shared pointer object")
+	{
+		return Status::FAIL;
+	}
 
 	// [ value ][ reference count ]
 	// ^
@@ -246,11 +253,8 @@ Status CreateShared(Shared<_Type>& _shared, _Arguments&& ... _arguments)
 	new(_shared.value) _Type(std::forward<_Arguments>(_arguments)...);
 
 	return Status::SUCCESS;
-
-SLR_EXCEPTION(COULD_NOT_ALLOCATE):
-	return Status::FAIL;
 }
 
-SLR_NAMEPSACE_END
+SLR_NAMESPACE_END
 
 #endif // ifndef SLR_MEMORY_SHAREDPOINTER

@@ -1,3 +1,10 @@
+/**
+* The functions contained within this file are an exemption to the typical method of returning Status. This is because if
+* any of the function calls fail and the caller asserts the result, this could cause infinite recursive calls to the
+* function. Therefore, all of these functions must be designed in a way which cannot throw an error, or require an error
+* message to be logged.
+*/
+
 #pragma once
 #ifndef SLR_ERRORHANDLING_EXCEPTION
 #define SLR_ERRORHANDLING_EXCEPTION
@@ -78,47 +85,42 @@ void SetLogger()
 }
 
 /**
-* If _condition evaluates to false, it will jump to _label and _message is logged
-* Use SLR_EXCEPTION as the label to jump to
-* A label name must be referred to exactly once in any assertion per scope, meaning, two assertions cannot use the same
-* exception
+* If _condition evaluates to false, _message will be logged as an error and the body of the macro will be executed
 * Example usage:
-*     SLR_ASSERT_ERROR(condition, CONDITION_WAS_NOT_MET, "Some condition was not met");
-*     // Code to be executed for regular execution
-* SLR_EXCEPTION(CONDITION_WAS_NOT_MET):
-*     // Code to recover from assertion (usually return Status::FAIL)
+*     SLR_ASSERT_ERROR(myCondition, "My condition was not met")
+*     {
+*         return Status::FAIL;
+*     }
+*     // Regular flow control with no exceptions
+* The majority of the time, this should just return Status::FAIL, though there may be some circumstances where the exception
+* would require some clean-up of resources, in which case, that would be handled within the body of the macro, then also
+* likely return FAIL
 */
-#define SLR_ASSERT_ERROR(_condition, _label, _message) \
+#define SLR_ASSERT_ERROR(_condition, _message) \
 	if (static_cast<bool>(_condition) == false) { \
 		ExceptionImplementation::GetLogger()->operator()(_message, LogLevel::ERROR); \
-		goto _label; \
 	} \
-	/* The opening brace matches with the closing brace where the exception is defined with SLR_EXCEPTION */ \
-	/* The braces exist to make it possible to declare variables below an assertion, otherwise the goto breaks it */ \
-	/* The cast to void makes it so the user is required to place a semicolon after the assertion */ \
-	{ (void)0
+	if (static_cast<bool>(_condition) == false)
 
 /**
-* If _condition evaluates to false, _message is logged as a warning and flow will jump to _label
-* Refer to SLR_ASSERT_ERROR for full explanation of this mechanism
+* If _condition evaluates to false, _message is logged as a warning and the body of the macro will be executed
+* Refer to SLR_ASSERT_ERROR(...) for full explanation of this mechanism
 */
-#define SLR_ASSERT_WARNING(_condition, _label, _message) \
+#define SLR_ASSERT_WARNING(_condition, _message) \
 	if (static_cast<bool>(_condition) == false) { \
 		ExceptionImplementation::GetLogger()->operator()(_message, LogLevel::WARNING); \
-		goto _label; \
 	} \
-	{ (void)0
+	if (static_cast<bool>(_condition) == false)
 
 /**
-* If _condition evaluates to false, _message is logged as info and flow will jump to _label
-* Refer to SLR_ASSERT_ERROR for full explanation of this mechanism
+* If _condition evaluates to false, _message is logged as info and the body of the macro will be executed
+* Refer to SLR_ASSERT_ERROR(...) for full explanation of this mechanism
 */
-#define SLR_ASSERT_INFO(_condition, _label, _message) \
+#define SLR_ASSERT_INFO(_condition, _message) \
 	if (static_cast<bool>(_condition) == false) { \
 		ExceptionImplementation::GetLogger()->operator()(_message, LogLevel::INFO); \
-		goto _label; \
 	} \
-	{ (void)0
+	if (static_cast<bool>(_condition) == false)
 
 /**
 * Logs an error if _condition evaluates to false
@@ -150,19 +152,6 @@ void SetLogger()
 		} \
 	} while (0)
 
-/**
-* The jump location of an assertion
-* Handle exceptions in reverse order to the order they were defined, e.g.:
-*     SLR_ASSERT_ERROR(..., EX_1, ...);
-*     SLR_ASSERT_ERROR(..., EX_2, ...);
-*     // ...
-* SLR_EXCEPTION(EX_2):
-*     // ...
-* SLR_EXCEPTION(EX_1):
-*     // ...
-*/
-#define SLR_EXCEPTION(_label) } goto _label; _label
-
-SLR_NAMEPSACE_END
+SLR_NAMESPACE_END
 
 #endif // ifndef SLR_ERRORHANDLING_EXCEPTION

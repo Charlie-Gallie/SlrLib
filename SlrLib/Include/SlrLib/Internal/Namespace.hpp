@@ -12,6 +12,6 @@
 /**
 * Closes the Slr namespace
 */
-#define SLR_NAMEPSACE_END }
+#define SLR_NAMESPACE_END }
 
 #endif // ifndef SLR_INTERNAL_NAMESPACE
