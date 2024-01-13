@@ -77,13 +77,14 @@ public:
 * Converts _type into the return type for functions
 * This is to make the return values within function parameters explicit to differentiate it from taking a regular reference
 * Example usage:
-*     Status Multiply(i32 _a, i32 _b, SLR_RETURN(i32) _c) {
+*     Status Multiply(SLR_RETURN(i32) _c, i32 _a, i32 _b) {
 *         _c = _a * _b;
 *         // ...
 *     }
+* For consistency, try to have the return value(s) as the first parameters
 */
 #define SLR_RETURN(_type) typename ReturnType<_type>::Type
 
-SLR_NAMEPSACE_END
+SLR_NAMESPACE_END
 
 #endif // ifndef SLR_UTILITIES_TYPES
